@@ -7,6 +7,7 @@ There is also Aster.Stack, which is a web-based player for Aster.Core built usin
 To run, go to the base directory and run:
 
 dotnet restore
+
 dotnet run
 
 and then open a browser to http://localhost:5000
