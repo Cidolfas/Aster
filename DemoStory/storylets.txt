@@ -143,6 +143,7 @@ Title: To Happy Homes
 Req: Cargo Has
 Q: Cargo Lose 1
 Q: CargoSpace Gain 1
+Q: Credits Gain 100
 -Body
 You pull into the spaceport and drop the cargo off with a person who looks eerily identical to the guy you picked it up from.
 

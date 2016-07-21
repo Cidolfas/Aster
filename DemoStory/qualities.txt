@@ -1,2 +1,28 @@
-!! Investigating
-You're on the case!
+!! Ship01
+Title: A Lease on a Small Spacecraft
+It's a reliable hauler, if not spacious
+
+!! Ship02
+Title: A Mortgage on a Medium Sized Crusier
+A fine ship, though not the one your dreams were made of
+
+!! Ship03
+Title: Outright Ownership of a Large Freighter
+Now that's a ship!
+
+!! Cleanliness
+Your parents didn't raise a slob
+
+!! CargoSpace
+Title: Cargo Space
+Space, the final restriction on carrying capacity
+
+!! Cargo
+Stuff. People like stuff.
+
+!! ShipWounds
+Title: Ship Problems
+Uh oh, your ship has some techincal issues.
+
+!! Credits
+Space dubloons are worth their weight in space dubloons
