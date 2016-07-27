@@ -19,14 +19,15 @@ namespace Aster.Core
 				if (storylet == null)
 					return false;
 
-				GoToStorylet(storylet);
+				var result = new ActionResult();
+				GoToStorylet(storylet, result);
 				return true;
 			}
 
 			return false;
 		}
 
-		public void GoToStorylet(Storylet s)
+		public void GoToStorylet(Storylet s, ActionResult r)
 		{
 			if (s == null)
 				return;
@@ -35,7 +36,8 @@ namespace Aster.Core
 
 			foreach (var op in s.EntryOperations)
 			{
-				op.ApplyOp(Items);
+				var opRes = op.ApplyOp(Items);
+				r.InventoryOps.Add(opRes);
 			}
 
 			if (s.Type == Storylet.NodeType.PassThrough)
@@ -45,7 +47,7 @@ namespace Aster.Core
 					var storylet = Data.GetStorylet(link.StoryletName);
 					if (storylet != null && storylet.HasMet(Items))
 					{
-						GoToStorylet(storylet);
+						GoToStorylet(storylet, r);
 						return;
 					}
 				}
@@ -56,8 +58,8 @@ namespace Aster.Core
 			if (s.Type == Storylet.NodeType.Chance)
 			{
 				int total = 0;
-				List<Storylet> metStorylets = new List<Storylet>();
-				List<Storylet.Link> metLinks = new List<Storylet.Link>();
+				var metStorylets = new List<Storylet>();
+				var metLinks = new List<Storylet.Link>();
 				foreach(var link in s.Links)
 				{
 					var storylet = Data.GetStorylet(link.StoryletName);
@@ -75,7 +77,52 @@ namespace Aster.Core
 					roll -= metLinks[i].Weight;
 					if (roll < 0)
 					{
-						GoToStorylet(metStorylets[i]);
+						GoToStorylet(metStorylets[i], r);
+						return;
+					}
+				}
+
+				return;
+			}
+
+			if (s.Type == Storylet.NodeType.Test)
+			{
+				Quality qual = Data.GetQuality(s.TestQualityName);
+				int quantity = Items.GetCount(s.TestQualityName);
+				if (qual != null)
+					quantity = qual.GetLevel(quantity);
+
+				int odds = 100 - s.GetOdds(quantity);
+				int roll = Data.GenericRandom.Next(100);
+				r.TestSuccess = (roll >= odds);
+
+				int total = 0;
+				var metStorylets = new List<Storylet>();
+				var metLinks = new List<Storylet.Link>();
+				foreach(var link in s.Links)
+				{
+					if (r.TestSuccess && link.Test != Storylet.Link.TestResult.Success)
+						continue;
+
+					if (!r.TestSuccess && link.Test != Storylet.Link.TestResult.Failure)
+						continue;
+
+					var storylet = Data.GetStorylet(link.StoryletName);
+					if (storylet != null && storylet.HasMet(Items))
+					{
+						total += link.Weight;
+						metStorylets.Add(storylet);
+						metLinks.Add(link);
+					}
+				}
+
+				roll = Data.GenericRandom.Next(total);
+				for (int i = 0; i < metStorylets.Count; i++)
+				{
+					roll -= metLinks[i].Weight;
+					if (roll < 0)
+					{
+						GoToStorylet(metStorylets[i], r);
 						return;
 					}
 				}
@@ -84,6 +131,9 @@ namespace Aster.Core
 			}
 
 			CurrentStorylet = s;
+
+			r.NewStorylet = s;
+			r.OnwardsStorylet = Data.GetStorylet(s.OnwardsName);
 
 			SetupStorylet();
 		}

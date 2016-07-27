@@ -14,14 +14,15 @@ namespace Aster.Core
 
 		public static void Log(string s, params object[] arg)
 		{
-			System.Console.WriteLine(s, arg);
+			Console.WriteLine(s, arg);
 		}
 
 		public static Game NewGame()
 		{
-			Game g = new Game();
+			var g = new Game();
 
-			g.GoToStorylet(Core.Data.GetStorylet("NewGame"));
+			var result = new ActionResult();
+			g.GoToStorylet(Data.GetStorylet("NewGame"), result);
 
 			return g;
 		}
@@ -107,6 +108,17 @@ namespace Aster.Core
 					{
 						currentStorylet.Type = Storylet.NodeType.Chance;
 					}
+					else if (line.StartsWith("Test "))
+					{
+						currentStorylet.Type = Storylet.NodeType.Test;
+						var chunks = line.Split(' ');
+						currentStorylet.TestQualityName = chunks[1];
+						currentStorylet.TestQualityAmount = int.Parse(chunks[2]);
+						if (chunks.Length > 3)
+						{
+							currentStorylet.TestNarrow == (chunks[3] == "Narrow");
+						}
+					}
 					else if (line.StartsWith("Title: "))
 					{
 						currentStorylet.Title = line.Replace("Title: ", "");
@@ -119,7 +131,7 @@ namespace Aster.Core
 					}
 					else if (line.StartsWith("Q: "))
 					{
-						var op = new Storylet.InventoryOp();
+						var op = new Inventory.Operation();
 						if (op.FromLine(line))
 							currentStorylet.EntryOperations.Add(op);
 					}
@@ -146,6 +158,14 @@ namespace Aster.Core
 
 							case Storylet.NodeType.PassThrough:
 								currentStorylet.Links.Add(new Storylet.Link(line.Remove(0, 1), null));
+								break;
+
+							case Storylet.NodeType.Test:
+								chunks = line.Split(' ');
+								weight;
+								if (!int.TryParse(chunks[2], out weight))
+									weight = 1;
+								currentStorylet.Links.Add(new Storylet.Link(chunks[0].Remove(0, 1), chunks[1], weight));
 								break;
 						}
 					}

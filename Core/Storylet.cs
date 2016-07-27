@@ -7,9 +7,12 @@ namespace Aster.Core
 	{
 		public class Link
 		{
+			public enum TestResult { None, Success, Failure }
+
 			public string Text;
 			public string StoryletName;
 			public int Weight = 1;
+			public TestResult Test = TestResult.None;
 
 			public Link(string sName, string txt)
 			{
@@ -22,6 +25,17 @@ namespace Aster.Core
 				StoryletName = sName;
 				Weight = weight;
 			}
+
+			public Link(string sName, string result, int weight)
+			{
+				StoryletName = sName;
+				Weight = weight;
+
+				if (result == "Success")
+					Test = TestResult.Success;
+				else if (result == "Failure")
+					Test = TestResult.Failure;
+			}
 		}
 
 		public class Requirement
@@ -32,7 +46,8 @@ namespace Aster.Core
 			public string QualityName;
 			public int Value;
 			public int ValueTwo;
-			public bool NoShow;
+			public bool NoShow; // Controls if we should show this storylet or not based on this req
+			public bool Hidden; // Controls if this req should be visible to the player
 
 			public bool FromLine(string[] chunks)
 			{
@@ -88,7 +103,10 @@ namespace Aster.Core
 
 			public bool IsMet(Inventory inv)
 			{
+				Quality qual = Data.GetQuality(QualityName);
 				int quantity = inv.GetCount(QualityName);
+				if (qual != null)
+					quantity = qual.GetLevel(quantity);
 
 				switch (Req)
 				{
@@ -119,71 +137,7 @@ namespace Aster.Core
 			}
 		}
 
-		public class InventoryOp
-		{
-			public enum OpType { None, Gain, Lose, Set, GainRange, LoseRange }
-
-			public OpType Op;
-			public string QualityName;
-			public int Value;
-			public int ValueTwo;
-
-			public bool FromLine(string line)
-			{
-				string[] chunks = line.Split(' ');
-				if (chunks.Length < 4)
-					return false;
-
-				if (chunks[0] != "Q:")
-					return false;
-
-				QualityName = chunks[1];
-
-				if (!Enum.TryParse<OpType>(chunks[2], true, out Op))
-					return false;
-
-				if (!int.TryParse(chunks[3], out Value))
-					return false;
-
-				if ((Op == OpType.GainRange || Op == OpType.LoseRange) && ((chunks.Length < 5) || !int.TryParse(chunks[4], out ValueTwo)))
-					return false;
-
-				return Op != OpType.None;
-			}
-
-			public void ApplyOp(Inventory Items)
-			{
-				int before = Items.GetCount(QualityName);
-				switch(Op)
-				{
-					case Storylet.InventoryOp.OpType.Gain:
-						Items.AddItem(QualityName, Value);
-						break;
-
-					case Storylet.InventoryOp.OpType.Lose:
-						Items.RemoveItem(QualityName, Value);
-						break;
-
-					case Storylet.InventoryOp.OpType.Set:
-						Items.SetItem(QualityName, Value);
-						break;
-
-					case Storylet.InventoryOp.OpType.GainRange:
-						int v = Data.GenericRandom.Next(Value, ValueTwo);
-						Items.AddItem(QualityName, v);
-						break;
-
-					case Storylet.InventoryOp.OpType.LoseRange:
-						v = Data.GenericRandom.Next(Value, ValueTwo);
-						Items.RemoveItem(QualityName, v);
-						break;
-				}
-				int after = Items.GetCount(QualityName);
-				Data.Log("ApplyOp: {0} {1} from {2} to {3}", QualityName, Op, before, after);
-			}
-		}
-
-		public enum NodeType { Normal, PassThrough, Chance }
+		public enum NodeType { Normal, PassThrough, Chance, Test }
 
 		public string Name = "NoName";
 
@@ -193,9 +147,12 @@ namespace Aster.Core
 		public NodeType Type = NodeType.Normal;
 
 		public List<Requirement> Requirements = new List<Requirement>();
-		public List<InventoryOp> EntryOperations = new List<InventoryOp>();
+		public List<Inventory.Operation> EntryOperations = new List<Inventory.Operation>();
 		public List<Link> Links = new List<Link>();
 		public string OnwardsName;
+		public string TestQualityName;
+		public int TestQualityAmount;
+		public bool TestNarrow;
 
 		public bool ShouldShow(Inventory inv)
 		{
@@ -218,6 +175,17 @@ namespace Aster.Core
 			}
 
 			return true;
+		}
+
+		public int GetOdds(int level)
+		{
+			if (TestNarrow)
+			{
+				int delta = level - TestQualityAmount;
+				return Math.Max(0, Math.Min(100, 60 + 10 * delta));
+			}
+
+			return Math.Max(0, Math.Min(100, (int)Math.Round(0.6 * ((double)level / TestQualityAmount))));
 		}
 	}
 }
