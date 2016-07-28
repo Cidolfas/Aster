@@ -29,6 +29,9 @@ namespace Aster.Core
 
 		public static Storylet GetStorylet(string name)
 		{
+			if (name == null)
+				return null;
+
 			if (Storylets.ContainsKey(name))
 				return Storylets[name];
 
@@ -37,6 +40,9 @@ namespace Aster.Core
 
 		public static Quality GetQuality(string name)
 		{
+			if (name == null)
+				return null;
+
 			if (Qualities.ContainsKey(name))
 				return Qualities[name];
 
@@ -45,6 +51,8 @@ namespace Aster.Core
 
 		public static void LoadStoryletFile(string path)
 		{
+			Log("Loading storylet file at " + path);
+
 			var f = File.OpenText(path);
 			string line;
 			bool inTextBlock = false;
@@ -61,6 +69,7 @@ namespace Aster.Core
 						currentStorylet.Body.Trim();
 						if (!Storylets.ContainsKey(currentStorylet.Name))
 						{
+							Log("Added Storylet " + currentStorylet.Name + " " + currentStorylet.Title);
 							Storylets.Add(currentStorylet.Name, currentStorylet);
 						}
 					}
@@ -76,6 +85,7 @@ namespace Aster.Core
 						currentStorylet.Body.Trim();
 						if (!Storylets.ContainsKey(currentStorylet.Name))
 						{
+							Log("Added Storylet " + currentStorylet.Name + " " + currentStorylet.Title);
 							Storylets.Add(currentStorylet.Name, currentStorylet);
 						}
 					}
@@ -116,7 +126,7 @@ namespace Aster.Core
 						currentStorylet.TestQualityAmount = int.Parse(chunks[2]);
 						if (chunks.Length > 3)
 						{
-							currentStorylet.TestNarrow == (chunks[3] == "Narrow");
+							currentStorylet.TestNarrow = (chunks[3] == "Narrow");
 						}
 					}
 					else if (line.StartsWith("Title: "))
@@ -162,7 +172,6 @@ namespace Aster.Core
 
 							case Storylet.NodeType.Test:
 								chunks = line.Split(' ');
-								weight;
 								if (!int.TryParse(chunks[2], out weight))
 									weight = 1;
 								currentStorylet.Links.Add(new Storylet.Link(chunks[0].Remove(0, 1), chunks[1], weight));
@@ -175,6 +184,8 @@ namespace Aster.Core
 
 		public static void LoadQualitiesFile(string path)
 		{
+			Log("Loading qualities file at " + path);
+
 			var f = File.OpenText(path);
 			string line;
 			Quality currentQuality = null;
@@ -188,6 +199,7 @@ namespace Aster.Core
 					{
 						if (!Qualities.ContainsKey(currentQuality.Name))
 						{
+							Log("Added Quality " + currentQuality.Name + " " + currentQuality.Title);
 							Qualities.Add(currentQuality.Name, currentQuality);
 						}
 					}
@@ -195,25 +207,26 @@ namespace Aster.Core
 					break;
 				}
 
-				if (currentQuality != null)
+				if (line.StartsWith("!!"))
 				{
-					if (line.StartsWith("!!"))
+					if (currentQuality != null)
 					{
-						if (currentQuality != null)
+						if (!Qualities.ContainsKey(currentQuality.Name))
 						{
-							if (!Qualities.ContainsKey(currentQuality.Name))
-							{
-								Qualities.Add(currentQuality.Name, currentQuality);
-							}
+							Log("Added Quality " + currentQuality.Name + " " + currentQuality.Title);
+							Qualities.Add(currentQuality.Name, currentQuality);
 						}
-
-						currentQuality = new Quality();
-
-						string[] chunks = line.Split(' ');
-						currentQuality.Name = (chunks.Length > 1) ? chunks[1] : "NoName";
-						currentQuality.Title = currentQuality.Name;
 					}
-					else if (line.StartsWith("Title: "))
+
+					currentQuality = new Quality();
+
+					string[] chunks = line.Split(' ');
+					currentQuality.Name = (chunks.Length > 1) ? chunks[1] : "NoName";
+					currentQuality.Title = currentQuality.Name;
+				}
+				else if (currentQuality != null)
+				{
+					if (line.StartsWith("Title: "))
 					{
 						currentQuality.Title = line.Replace("Title: ", "");
 					}

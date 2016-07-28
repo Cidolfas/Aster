@@ -9,7 +9,7 @@ namespace Aster.Core
 
 		public Dictionary<string, Storylet.Link> Options = new Dictionary<string, Storylet.Link>();
 
-		public bool TakeAction(string action)
+		public ActionResult TakeAction(string action)
 		{
 			Data.Log("Taking action {0}", action);
 			if (Options.ContainsKey(action))
@@ -17,14 +17,14 @@ namespace Aster.Core
 				var storylet = Data.GetStorylet(Options[action].StoryletName);
 				Data.Log("Storylet: {0} {1}", Options[action].StoryletName, (storylet != null) ? "found" : "not found");
 				if (storylet == null)
-					return false;
+					return null;
 
 				var result = new ActionResult();
 				GoToStorylet(storylet, result);
-				return true;
+				return result;
 			}
 
-			return false;
+			return null;
 		}
 
 		public void GoToStorylet(Storylet s, ActionResult r)
@@ -87,6 +87,8 @@ namespace Aster.Core
 
 			if (s.Type == Storylet.NodeType.Test)
 			{
+				r.TestStorylet = s;
+
 				Quality qual = Data.GetQuality(s.TestQualityName);
 				int quantity = Items.GetCount(s.TestQualityName);
 				if (qual != null)

@@ -7,12 +7,13 @@ namespace Aster.Stack
 	{
 		public AsterModule()
 		{
-			Get["/"] = _ => AsterBasicView.Render(Data.CurrentGame);
+			Get["/"] = _ => AsterBasicView.Render(Data.CurrentGame, null);
 			Get["/action/{id}"] = parameters =>
 			{
-				if (Data.CurrentGame.TakeAction(parameters.id))
+				var result = Data.CurrentGame.TakeAction(parameters.id);
+				if (result != null)
 				{
-					return AsterBasicView.Render(Data.CurrentGame);
+					return AsterBasicView.Render(Data.CurrentGame, result);
 				}
 
 				string noAct = "No such action!<br/>\n";

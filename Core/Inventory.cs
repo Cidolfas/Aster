@@ -69,6 +69,7 @@ namespace Aster.Core
 				Data.Log("ApplyOp: {0} {1} from {2} to {3}", QualityName, Op, before, after);
 
 				res.Qual = Data.GetQuality(QualityName);
+				res.QualName = QualityName;
 				res.Start = before;
 				res.End = after;
 				res.Op = Op;
@@ -79,16 +80,20 @@ namespace Aster.Core
 		public class Result
 		{
 			public Quality Qual;
+			public string QualName;
 			public int Start;
 			public int End;
 			public Operation.OpType Op;
 
-			public bool HasIncreased { get { return (Op != Operation.OpType.Set) && (End < Start); } }
+			public bool HasIncreased { get { return (Op != Operation.OpType.Set) && (End > Start); } }
 			public bool HasDecreased { get { return (Op != Operation.OpType.Set) && (End < Start); } }
 			public bool HasSet { get { return (Op == Operation.OpType.Set); } }
 			public bool HasGained { get { return (Start == 0 && End > 0); } }
 			public bool HasLost { get { return (Start > 0 && End == 0); } }
 			public int Delta { get { return End - Start; } }
+			public int ModifiedStart { get { return (Qual != null) ? Qual.GetLevel(Start) : Start; } }
+			public int ModifiedEnd { get { return (Qual != null) ? Qual.GetLevel(End) : End; } }
+			public int ModifiedDelta { get { return ModifiedEnd - ModifiedStart; } }
 		}
 
 		protected Dictionary<string, int> mItems = new Dictionary<string, int>();
