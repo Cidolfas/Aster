@@ -1,10 +1,17 @@
-﻿using Aster.Core;
+﻿using System.IO;
+using Aster.Core;
 using CommonMark;
 
 namespace Aster.Stack
 {
 	public static class AsterBasicView
 	{
+		public static string ReadFile(string path)
+		{
+			var f = File.OpenText(path);
+			return f.ReadToEnd();
+		}
+
 		public static string Render(Game game, ActionResult result)
 		{
 			string body = "";
@@ -33,7 +40,7 @@ namespace Aster.Stack
 
 			foreach (var kvp in game.Options)
 			{
-				body += string.Format("<a href=\"/action/{0}\">{1}</a><br />\n", kvp.Key, kvp.Value.Text);
+				body += string.Format("<a href=\"#\" onclick=\"doAction('{0}'); return false;\">{1}</a><br />\n", kvp.Key, kvp.Value.Text);
 			}
 
 			return body;

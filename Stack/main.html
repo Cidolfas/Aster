@@ -1,0 +1,25 @@
+<html>
+	<head>
+		<script type="text/javascript">
+			function contactServer(url)
+			{
+				var xhr = new XMLHttpRequest();
+				xhr.onload = function()
+				{
+					document.body.innerHTML = xhr.responseText;
+				}
+				xhr.open("GET", url);
+				xhr.responseType = "text";
+				xhr.send();
+			}
+
+			function doAction(id) { contactServer("/action/" + id); }
+
+			function loadCurrent() { contactServer("/current"); }
+
+			window.onload = loadCurrent;
+		</script>
+	</head>
+	<body>
+	</body>
+</html>

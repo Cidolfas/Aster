@@ -1,13 +1,15 @@
 namespace Aster.Stack
 {
 	using Nancy;
+	using Nancy.Responses;
 	using Core;
 
 	public class AsterModule : NancyModule
 	{
 		public AsterModule()
 		{
-			Get["/"] = _ => AsterBasicView.Render(Data.CurrentGame, null);
+			Get["/"] = _ => AsterBasicView.ReadFile("Stack/main.html");
+			Get["/current"] = _ => AsterBasicView.Render(Data.CurrentGame, null);
 			Get["/action/{id}"] = parameters =>
 			{
 				var result = Data.CurrentGame.TakeAction(parameters.id);
