@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Aster.Core
+namespace Azalea.Core
 {
 	public class Inventory
 	{

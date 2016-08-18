@@ -1,10 +1,10 @@
 ﻿using System.IO;
-using Aster.Core;
+using Azalea.Core;
 using CommonMark;
 
-namespace Aster.Stack
+namespace Azalea.Stack
 {
-	public static class AsterBasicView
+	public static class AzaleaBasicView
 	{
 		public static string ReadFile(string path)
 		{
@@ -23,9 +23,9 @@ namespace Aster.Stack
 
 			if (result != null && result.TestStorylet != null)
 			{
-				var qual = Data.GetQuality(result.TestStorylet.TestQualityName);
+				var qual = Data.GetQuality(result.TestStorylet.Tests[0].QualityName);
 				if (qual != null)
-					body += string.Format("<p>You {0} a test of {1} {2}</p>\n", (result.TestSuccess) ? "succeeded" : "failed", qual.Title, result.TestStorylet.TestQualityAmount);
+					body += string.Format("<p>You {0} a test of {1} {2}</p>\n", (result.TestSuccess) ? "succeeded" : "failed", qual.Title, result.TestStorylet.Tests[0].Value);
 			}
 
 			body += CommonMarkConverter.Convert(game.CurrentStorylet.Body);
@@ -40,7 +40,15 @@ namespace Aster.Stack
 
 			foreach (var kvp in game.Options)
 			{
-				body += string.Format("<a href=\"#\" onclick=\"doAction('{0}'); return false;\">{1}</a><br />\n", kvp.Key, kvp.Value.Text);
+				var s = Data.GetStorylet(kvp.Value.StoryletName);
+				if (s == null)
+					continue;
+
+				string title = s.LinkTitle;
+				if (kvp.Value.Special == "Onwards")
+					title = "Onwards";
+
+				body += string.Format("<a href=\"#\" onclick=\"doAction('{0}'); return false;\">{1}</a><br />\n", kvp.Key, title);
 			}
 
 			return body;

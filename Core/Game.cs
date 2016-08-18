@@ -1,13 +1,81 @@
+using System;
 using System.Collections.Generic;
 
-namespace Aster.Core
+namespace Azalea.Core
 {
 	public class Game
 	{
 		public Inventory Items = new Inventory();
 		public Storylet CurrentStorylet;
+		public Storylet CurrentLocation;
 
 		public Dictionary<string, Storylet.Link> Options = new Dictionary<string, Storylet.Link>();
+
+		public virtual void Init()
+		{
+			Data.Init();
+
+			// Setup odds curves
+			Data.TestCurves.Add("Broad", BroadOdds);
+			Data.TestCurves.Add("Narrow", NarrowOdds);
+			Data.TestCurves.Add("Range", RangeOdds);
+			Data.DefaultTestCurve = BroadOdds;
+
+			// Setup level curves
+			Data.LevelCurves.Add("Straight", StraightLevel);
+			Data.LevelCurves.Add("Attribute", AttributeLevel);
+			Data.DefaultLevelCurve = StraightLevel;
+		}
+
+#region Odds
+
+		protected int BroadOdds(int v1, int v2, int q)
+		{
+			return Math.Max(0, Math.Min(100, (int)Math.Round(60 * ((double)q / v1))));
+		}
+
+		protected int NarrowOdds(int v1, int v2, int q)
+		{
+			int delta = q - v1;
+			return Math.Max(0, Math.Min(100, 60 + 10 * delta));
+		}
+
+		protected int RangeOdds(int v1, int v2, int q)
+		{
+			if (v2 < 0)
+				v2 = v1;
+
+			if (q >= v2)
+				return 100;
+
+			if (q <= v1)
+				return 0;
+
+			return  Math.Max(0, Math.Min(100, (int)Math.Round(100 * ((double)q - v1) / (v2 - v1))));
+		}
+
+#endregion
+
+#region Levels
+	
+		protected int StraightLevel(int q)
+		{
+			return q;
+		}
+
+		protected int AttributeLevel(int q)
+		{
+			int level = 0;
+			int i = 0;
+			while(i < q)
+			{
+				level++;
+				i += level;
+			}
+			return (i == q) ? level : level-1;
+		}
+
+#endregion
 
 		public ActionResult TakeAction(string action)
 		{
@@ -34,10 +102,23 @@ namespace Aster.Core
 
 			Data.Log("GoTo Storylet {0}", s.Name);
 
-			foreach (var op in s.EntryOperations)
+			foreach (var op in s.Operations)
 			{
 				var opRes = op.ApplyOp(Items);
 				r.InventoryOps.Add(opRes);
+			}
+
+			if (s.IsLocation)
+				CurrentLocation = s;
+
+			if (s.MoveLoc != null)
+			{
+				var storylet = Data.GetStorylet(s.MoveLoc);
+				if (storylet != null && storylet.IsLocation)
+				{
+					r.MoveLocation = storylet;
+					CurrentLocation = storylet;
+				}
 			}
 
 			if (s.Type == Storylet.NodeType.PassThrough)
@@ -89,14 +170,16 @@ namespace Aster.Core
 			{
 				r.TestStorylet = s;
 
-				Quality qual = Data.GetQuality(s.TestQualityName);
-				int quantity = Items.GetCount(s.TestQualityName);
-				if (qual != null)
-					quantity = qual.GetLevel(quantity);
-
-				int odds = 100 - s.GetOdds(quantity);
-				int roll = Data.GenericRandom.Next(100);
-				r.TestSuccess = (roll >= odds);
+				int roll;
+				bool success = true;
+				foreach(var test in s.Tests)
+				{
+					int odds = 100 - test.GetOdds(Items);
+					roll = Data.GenericRandom.Next(100);
+					if (roll < odds)
+						success = false;
+				}
+				r.TestSuccess = success;
 
 				int total = 0;
 				var metStorylets = new List<Storylet>();
@@ -135,7 +218,6 @@ namespace Aster.Core
 			CurrentStorylet = s;
 
 			r.NewStorylet = s;
-			r.OnwardsStorylet = Data.GetStorylet(s.OnwardsName);
 
 			SetupStorylet();
 		}
@@ -152,37 +234,22 @@ namespace Aster.Core
 			foreach (var link in CurrentStorylet.Links)
 			{
 				Storylet s = Data.GetStorylet(link.StoryletName);
-				Data.Log("Link {0} {1} {2}", link.StoryletName, link.Text, s != null);
+				Data.Log("Link {0} {1} {2}", link.StoryletName, s.LinkText, s != null);
 				if (s != null && s.HasMet(Items))
 				{
-					string rnd = GetRandomString();
+					string rnd = Data.GetRandomString();
 					while (Options.ContainsKey(rnd))
-						rnd = GetRandomString(); // Just in case
+						rnd = Data.GetRandomString(); // Just in case
 					Options.Add(rnd, link);
 				}
 			}
 
-			if (CurrentStorylet.OnwardsName != null)
+			if (Options.Count == 0)
 			{
-				Data.Log("Onwards {0}", CurrentStorylet.OnwardsName);
-				string rnd = GetRandomString();
-				while (Options.ContainsKey(rnd))
-					rnd = GetRandomString();
-				Options.Add(rnd, new Storylet.Link(CurrentStorylet.OnwardsName, "Onwards"));
+				Data.Log("Onwards {0}", CurrentLocation.Name);
+				string rnd = Data.GetRandomString();
+				Options.Add(rnd, Storylet.Link.GetOnwards(CurrentLocation.Name));
 			}
-		}
-
-		protected static string GetRandomString()
-		{
-			char[] availableChars = "abcdefghijklmnopqrstuvwxyz0123456789".ToCharArray();
-			int charCount = availableChars.Length;
-			int num = 12;
-			var result = new char[num];
-			while (num-- > 0)
-			{
-				result[num] = availableChars[Data.GenericRandom.Next(charCount)];
-			}
-			return new string(result);
 		}
 	}
 }

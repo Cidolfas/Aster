@@ -1,9 +1,6 @@
 !! NewGame
 PassThrough
-@Ship
-Q: Ship01 Set 1
-Q: Cleanliness Set 6
-Q: CargoSpace Set 3
+@GetShip01
 
 # Ship stuff
 
@@ -14,6 +11,7 @@ PassThrough
 @Ship03
 
 !! Ship01
+Location
 PassThrough
 Req: Ship01 Has
 @Ship01Busted
@@ -21,14 +19,30 @@ Req: Ship01 Has
 @Ship01Cramped
 @Ship01Normal
 
+!! GetShip01
+PassThrough
+Q: Ship01 Set 1
+Q: Cleanliness Set 6
+Q: CargoSpace Set 3
+@Ship01
+
 !! Ship02
+Location
 Title: Ship 2
 Req: Ship02 Has
 -Body
 This is the second ship, which isn't in yet.
 -
 
+!! GetShip02
+PassThrough
+Q: Ship02 Set 1
+Q: Cleanliness Set 6
+Q: CargoSpace Set 5
+@Ship02
+
 !! Ship03
+Location
 Title: Ship 3
 Req: Ship03 Has
 -Body
@@ -77,6 +91,33 @@ It's a small thing, your ship, but it's home.
 @MissionBoard Look for jobs
 
 # Ship stories
+
+!! Upgrade01
+Title: Buying A Bigger Ship
+Req: Ship01 Has
+Req: ShipWounds LessThan 3
+Req: Credits GreaterThan 999
+Q: Ship01 Set 0
+Q: Credits Lose 1000
+-Body
+You strike a hard deal with the salesman, but you convince him that your ship is nearly as good as the one you're buying. He looks it over with great care and decides you're right.
+
+It's a deal.
+-
+Onwards: GainShip02
+
+!! Upgrade01Broken
+Title: Buying A Bigger Ship
+Req: Ship01 Has
+Req: ShipWounds GreaterThan 2
+Req: Credits GreaterThan 1499
+Q: Ship01 Set 0
+Q: Ship02 Set 1
+-Body
+You strike a hard deal with the salesman, but you convince him that your ship is nearly as good as the one you're buying. He looks it over with great care, which is bad news because your ship is a dump.
+
+You have to hand over more credits than you wanted, but you strike a deal.
+-
 
 !! CleanShip
 Chance

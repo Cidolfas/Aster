@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Nancy.Owin;
 
-namespace Aster
+namespace Azalea
 {
 	public class Startup
 	{
@@ -14,10 +14,8 @@ namespace Aster
 		// Entry point for the application.
 		public static void Main()
 		{
-			Core.Data.LoadStoryletFile("DemoStory/storylets.txt");
-			Core.Data.LoadQualitiesFile("DemoStory/qualities.txt");
-
-			Core.Data.CurrentGame = Core.Data.NewGame();
+			Core.Data.CurrentGame = new Demo.DemoGame();
+			Core.Data.CurrentGame.Init();
 
             new WebHostBuilder().UseKestrel().UseStartup<Startup>().Build().Run();
 		}

@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-namespace Aster.Core
+namespace Azalea.Core
 {
 	public class ActionResult
 	{
@@ -9,6 +9,7 @@ namespace Aster.Core
 		public Storylet OnwardsStorylet;
 		public Storylet CancelStorylet;
 		public List<Inventory.Result> InventoryOps = new List<Inventory.Result>();
+		public Storylet MoveLocation;
 	}
 }
 

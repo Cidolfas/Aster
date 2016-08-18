@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Aster.Core
+namespace Azalea.Core
 {
 	public class Storylet
 	{
@@ -9,57 +9,77 @@ namespace Aster.Core
 		{
 			public enum TestResult { None, Success, Failure }
 
-			public string Text;
+			public string Special = null;
 			public string StoryletName;
 			public int Weight = 1;
 			public TestResult Test = TestResult.None;
 
-			public Link(string sName, string txt)
+			public static Link GetOnwards(string sName)
 			{
-				Text = txt;
-				StoryletName = sName;
+				var l = new Link();
+				l.Special = "Onwards";
+				l.StoryletName = sName;
+				return l;
 			}
 
-			public Link(string sName, int weight)
+			public bool FromLine(string line, NodeType type)
 			{
-				StoryletName = sName;
-				Weight = weight;
-			}
+				var chunks = line.Split(' ');
+				int idx = 0;
 
-			public Link(string sName, string result, int weight)
-			{
-				StoryletName = sName;
-				Weight = weight;
+				StoryletName = chunks[idx++].Remove(0, 1);
 
-				if (result == "Success")
-					Test = TestResult.Success;
-				else if (result == "Failure")
-					Test = TestResult.Failure;
+				while (++idx < chunks.Length)
+				{
+					if (chunks[idx] == "Success")
+					{
+						Test = TestResult.Success;
+					}
+					else if (chunks[idx] == "Failure")
+					{
+						Test = TestResult.Failure;
+					}
+					else
+					{
+						int w;
+						if (int.TryParse(chunks[idx], out w))
+						{
+							Weight = w;
+						}
+					}
+				}
+
+				if (type == NodeType.Test && Test == TestResult.None)
+					return false;
+
+				return true;
 			}
 		}
 
 		public class Requirement
 		{
-			public enum ReqType { None, Equals, LessThan, GreaterThan, Has, HasNo, Range }
+			public enum ReqType { None, Equals, LessThan, AtLeast, Has, HasNo, Range }
 
 			public ReqType Req;
 			public string QualityName;
 			public int Value;
 			public int ValueTwo;
 			public bool NoShow; // Controls if we should show this storylet or not based on this req
-			public bool Hidden; // Controls if this req should be visible to the player
 
-			public bool FromLine(string[] chunks)
+			public bool FromLine(string line)
 			{
+				string[] chunks = line.Split(' ');
+				int idx = 0;
+
 				if (chunks.Length < 3)
 					return false;
 
-				if (chunks[0] != "Req:")
+				if (chunks[idx++] != "Req:")
 					return false;
 
-				QualityName = chunks[1];
+				QualityName = chunks[idx++];
 
-				if (!Enum.TryParse<ReqType>(chunks[2], true, out Req))
+				if (!Enum.TryParse<ReqType>(chunks[idx++], true, out Req))
 					return false;
 
 				switch (Req)
@@ -69,36 +89,48 @@ namespace Aster.Core
 
 					case ReqType.Has:
 					case ReqType.HasNo:
-						NoShow = (chunks.Length == 4 && chunks[3] == "NoShow");
-						return true;
+						break;
 
 					case ReqType.Equals:
 					case ReqType.LessThan:
-					case ReqType.GreaterThan:
-						if (chunks.Length < 4)
+					case ReqType.AtLeast:
+						if (chunks.Length < idx + 1)
 							return false;
 
-						if (!int.TryParse(chunks[3], out Value))
+						if (!int.TryParse(chunks[idx++], out Value))
 							return false;
 
-						NoShow = (chunks.Length == 5 && chunks[4] == "NoShow");
-
-						return true;
+						break;
 
 					case ReqType.Range:
-						if (chunks.Length < 5)
+						if (chunks.Length < idx + 2)
 							return false;
 
-						if (!int.TryParse(chunks[3], out Value) || !int.TryParse(chunks[4], out ValueTwo))
+						if (!int.TryParse(chunks[idx++], out Value) || !int.TryParse(chunks[idx++], out ValueTwo))
 							return false;
 
-						NoShow = (chunks.Length == 6 && chunks[5] == "NoShow");
-
-						return true;
+						break;
 
 					default:
 						return false;
 				}
+
+				while (idx < chunks.Length)
+				{
+					string cmd = chunks[idx++];
+
+					switch (cmd)
+					{
+						case "NoShow":
+							NoShow = true;
+							break;
+
+						default:
+							break;
+					}
+				}
+
+				return true;
 			}
 
 			public bool IsMet(Inventory inv)
@@ -119,8 +151,8 @@ namespace Aster.Core
 					case ReqType.LessThan:
 						return quantity < Value;
 
-					case ReqType.GreaterThan:
-						return quantity > Value;
+					case ReqType.AtLeast:
+						return quantity >= Value;
 
 					case ReqType.Has:
 						return quantity > 0;
@@ -137,6 +169,71 @@ namespace Aster.Core
 			}
 		}
 
+		public class Test
+		{
+			public string QualityName;
+			public int Value = 0;
+			public int ValueTwo = -1;
+			public string TestName;
+			public bool Invert;
+
+			public bool FromLine(string line)
+			{
+				string[] chunks = line.Split(' ');
+				int idx = 0;
+
+				if (chunks.Length < 3)
+					return false;
+
+				if (chunks[idx++] != "Test")
+					return false;
+
+				QualityName = chunks[idx++];
+				if (!int.TryParse(chunks[idx++], out Value))
+				{
+					return false;
+				}
+
+				if (chunks.Length > 3 && !int.TryParse(chunks[idx++], out ValueTwo))
+				{
+					idx--;
+				}
+
+				while (idx < chunks.Length)
+				{
+					string cmd = chunks[idx++];
+
+					switch (cmd)
+					{
+						case "Invert":
+							Invert = true;
+							break;
+
+						default:
+							TestName = cmd;
+							break;
+					}
+				}
+
+				return true;
+			}
+
+			public int GetOdds(Inventory inv)
+			{
+				Quality qual = Data.GetQuality(QualityName);
+				int level = inv.GetCount(QualityName);
+				if (qual != null)
+					level = qual.GetLevel(level);
+
+				if (TestName != null && Data.TestCurves.ContainsKey(TestName))
+				{
+					return Data.TestCurves[TestName](Value, ValueTwo, level);
+				}
+
+				return Data.DefaultTestCurve(Value, ValueTwo, level);
+			}
+		}
+
 		public enum NodeType { Normal, PassThrough, Chance, Test }
 
 		public string Name = "NoName";
@@ -144,15 +241,18 @@ namespace Aster.Core
 		public string Title = "NoTitle";
 		public string Body = "NoBody";
 
+		public string LinkTitle = "NoTitle";
+		public string LinkText = "NoBody";
+
 		public NodeType Type = NodeType.Normal;
 
 		public List<Requirement> Requirements = new List<Requirement>();
-		public List<Inventory.Operation> EntryOperations = new List<Inventory.Operation>();
+		public List<Inventory.Operation> Operations = new List<Inventory.Operation>();
+		public string MoveLoc = null;
 		public List<Link> Links = new List<Link>();
-		public string OnwardsName;
-		public string TestQualityName;
-		public int TestQualityAmount;
-		public bool TestNarrow;
+		public List<Test> Tests = new List<Test>();
+
+		public bool IsLocation = false;
 
 		public bool ShouldShow(Inventory inv)
 		{
@@ -177,15 +277,19 @@ namespace Aster.Core
 			return true;
 		}
 
-		public int GetOdds(int level)
+		public int GetOdds(Inventory inv)
 		{
-			if (TestNarrow)
+			if (Tests.Count == 0)
+				return 0;
+
+			float odds = 1f;
+
+			for (int i = 0; i < Tests.Count; i++)
 			{
-				int delta = level - TestQualityAmount;
-				return Math.Max(0, Math.Min(100, 60 + 10 * delta));
+				odds *= (float)Tests[i].GetOdds(inv) / 100;
 			}
 
-			return Math.Max(0, Math.Min(100, (int)Math.Round(0.6 * ((double)level / TestQualityAmount))));
+			return (int)Math.Round(odds * 100);
 		}
 	}
 }
