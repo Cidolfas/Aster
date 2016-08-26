@@ -45,10 +45,6 @@ namespace Azalea.Core
 					{
 						inTextBlock = false;
 					}
-					else if (inTextBlock)
-					{
-						AddTextLine(line, inLink);
-					}
 					else if (line.StartsWith("-Body"))
 					{
 						inTextBlock = true;
@@ -58,6 +54,10 @@ namespace Azalea.Core
 					{
 						inTextBlock = true;
 						inLink = true;
+					}
+					else if (inTextBlock)
+					{
+						AddTextLine(line, inLink);
 					}
 					else if (line == "PassThrough")
 					{

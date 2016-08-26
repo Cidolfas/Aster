@@ -176,6 +176,8 @@ Q: Cargo Gain 1
 You pick some generic metal crates up at the spaceport and load them onto your ship.
 
 You don't ask what's in them.
+-Link
+People need things delivered, and you have a ship that can get it there.
 -
 Onwards: @Ship
 
@@ -189,5 +191,7 @@ Q: Credits Gain 100
 You pull into the spaceport and drop the cargo off with a person who looks eerily identical to the guy you picked it up from.
 
 Surely there's no way he could have outraced you here?
+-Link
+Clients are waiting for you to deliver their cargo, what's the hold up?
 -
 Onwards: @Ship

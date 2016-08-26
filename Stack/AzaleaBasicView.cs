@@ -19,6 +19,8 @@ namespace Azalea.Stack
 			if (game == null || game.CurrentStorylet == null)
 				return "No storylet!";
 
+			body += "<div class='storylet'>";
+
 			body += string.Format("<h3>{0}</h3>\n", game.CurrentStorylet.Title);
 
 			if (result != null && result.TestStorylet != null)
@@ -30,28 +32,54 @@ namespace Azalea.Stack
 
 			body += CommonMarkConverter.Convert(game.CurrentStorylet.Body);
 
+			body += "</div>";
+
 			if (result != null)
 			{
 				foreach(var inv in result.InventoryOps)
 				{
-					body += string.Format("<p>{0}</p>\n", GetInvOpString(inv));
+					body += RenderInventoryOp(inv);
 				}
 			}
 
 			foreach (var kvp in game.Options)
 			{
-				var s = Data.GetStorylet(kvp.Value.StoryletName);
-				if (s == null)
-					continue;
-
-				string title = s.LinkTitle;
-				if (kvp.Value.Special == "Onwards")
-					title = "Onwards";
-
-				body += string.Format("<a href=\"#\" onclick=\"doAction('{0}'); return false;\">{1}</a><br />\n", kvp.Key, title);
+				body += RenderLink(kvp.Value, kvp.Key);
 			}
 
 			return body;
+		}
+
+		public static string RenderInventoryOp(Inventory.Result inv)
+		{
+			string result = "<div class='invOp'>";
+			result += string.Format("<p>{0}</p>\n", GetInvOpString(inv));
+			result += "</div>";
+
+			return result;
+		}
+
+		public static string RenderLink(Storylet.Link l, string id)
+		{
+			var s = Data.GetStorylet(l.StoryletName);
+			if (s == null)
+				return "";
+
+			string title = s.LinkTitle;
+			string description = s.LinkText;
+			if (l.Special == "Onwards")
+			{
+				title = "Onwards";
+				description = null;
+			}
+
+			string result = "<div class='link'>";
+			result += string.Format("<a href=\"#\" onclick=\"doAction('{0}'); return false;\">{1}</a>\n", id, title);
+			if (!string.IsNullOrEmpty(description))
+				result += string.Format("<p>{0}</p>", description);
+			result += "</div>";
+
+			return result;
 		}
 
 		public static string GetInvOpString(Inventory.Result res)

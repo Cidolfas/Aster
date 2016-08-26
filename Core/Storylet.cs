@@ -238,11 +238,11 @@ namespace Azalea.Core
 
 		public string Name = "NoName";
 
-		public string Title = "NoTitle";
-		public string Body = "NoBody";
+		public string Title = "";
+		public string Body = "";
 
-		public string LinkTitle = "NoTitle";
-		public string LinkText = "NoBody";
+		public string LinkTitle = "";
+		public string LinkText = "";
 
 		public NodeType Type = NodeType.Normal;
 
