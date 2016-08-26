@@ -18,6 +18,8 @@ namespace Azalea.Core
 
 		public List<string> Tags = new List<string>();
 
+		public string PirmaryTag { get { return (Tags.Count > 0) ? Tags[0] : null; } }
+
 		public bool HasStorylet { get { return !string.IsNullOrEmpty(StoryletName); } }
 
 		public bool IsTag(string tagName) { return Tags.Contains(tagName); }
