@@ -6,10 +6,8 @@ namespace Azalea.Core
 	public class Game
 	{
 		public Inventory Items = new Inventory();
-		public Storylet CurrentStorylet;
+		public ActionResult CurrentAR;
 		public Storylet CurrentLocation;
-
-		public Dictionary<string, Storylet.Link> Options = new Dictionary<string, Storylet.Link>();
 
 		public virtual void Init()
 		{
@@ -77,22 +75,47 @@ namespace Azalea.Core
 
 #endregion
 
-		public ActionResult TakeAction(string action)
+		public bool TakeAction(string action)
 		{
-			Data.Log("Taking action {0}", action);
-			if (Options.ContainsKey(action))
+			if (CurrentAR == null)
 			{
-				var storylet = Data.GetStorylet(Options[action].StoryletName);
-				Data.Log("Storylet: {0} {1}", Options[action].StoryletName, (storylet != null) ? "found" : "not found");
-				if (storylet == null)
-					return null;
-
-				var result = new ActionResult();
-				GoToStorylet(storylet, result);
-				return result;
+				Data.Log("Cannot take action {0}, no AR", action);
+				return false;
 			}
 
-			return null;
+			Data.Log("Taking action {0}", action);
+			if (CurrentAR.Options.ContainsKey(action))
+			{
+				var storylet = Data.GetStorylet(CurrentAR.Options[action].StoryletName);
+				Data.Log("Storylet: {0} {1}", CurrentAR.Options[action].StoryletName, (storylet != null) ? "found" : "not found");
+				if (storylet == null)
+					return false;
+
+				ActionResult r = new ActionResult();
+				GoToStorylet(storylet, r);
+				CurrentAR = r;
+				SetupAR();
+				return true;
+			}
+
+			return false;
+		}
+
+		public bool JumpToStorylet(Storylet s)
+		{
+			if (s == null)
+			{
+				Data.Log("Cannot jump to null storylet");
+				return false;
+			}
+
+			Data.Log("Jumping to storylet {0}", s.Name);
+			ActionResult r = new ActionResult();
+			GoToStorylet(s, r);
+			CurrentAR = r;
+			SetupAR();
+
+			return true;
 		}
 
 		public void GoToStorylet(Storylet s, ActionResult r)
@@ -109,14 +132,16 @@ namespace Azalea.Core
 			}
 
 			if (s.IsLocation)
+			{
 				CurrentLocation = s;
+				r.CountsAsLocation = true;
+			}
 
 			if (s.MoveLoc != null)
 			{
 				var storylet = Data.GetStorylet(s.MoveLoc);
 				if (storylet != null && storylet.IsLocation)
 				{
-					r.MoveLocation = storylet;
 					CurrentLocation = storylet;
 				}
 			}
@@ -168,18 +193,20 @@ namespace Azalea.Core
 
 			if (s.Type == Storylet.NodeType.Test)
 			{
-				r.TestStorylet = s;
-
 				int roll;
-				bool success = true;
 				foreach(var test in s.Tests)
 				{
+					bool success = true;
 					int odds = 100 - test.GetOdds(Items);
 					roll = Data.GenericRandom.Next(100);
 					if (roll < odds)
 						success = false;
+
+					TestResult tr = new TestResult();
+					tr.Test = test;
+					tr.Success = success;
+					r.Tests.Add(tr);
 				}
-				r.TestSuccess = success;
 
 				int total = 0;
 				var metStorylets = new List<Storylet>();
@@ -215,40 +242,47 @@ namespace Azalea.Core
 				return;
 			}
 
-			CurrentStorylet = s;
-
-			r.NewStorylet = s;
-
-			SetupStorylet();
+			r.Storylet = s;
 		}
 
-		protected void SetupStorylet()
+		protected void SetupAR()
 		{
-			Options.Clear();
-
-			if (CurrentStorylet == null)
+			if (CurrentAR == null || CurrentAR.Storylet == null)
 				return;
 
-			// Data.Log("Links {0}", CurrentStorylet.Links.Count);
-
-			foreach (var link in CurrentStorylet.Links)
+			foreach (var link in CurrentAR.Storylet.Links)
 			{
 				Storylet s = Data.GetStorylet(link.StoryletName);
 				Data.Log("Link {0} {1} {2}", link.StoryletName, s.LinkText, s != null);
-				if (s != null && s.HasMet(Items))
+				if (s != null)
 				{
-					string rnd = Data.GetRandomString();
-					while (Options.ContainsKey(rnd))
-						rnd = Data.GetRandomString(); // Just in case
-					Options.Add(rnd, link);
+					if (s.HasMet(Items))
+					{
+						string rnd = Data.GetRandomString();
+						while (CurrentAR.Options.ContainsKey(rnd))
+							rnd = Data.GetRandomString(); // Just in case
+						CurrentAR.Options.Add(rnd, link);
+					}
+					else if (s.ShouldShow(Items))
+					{
+						CurrentAR.NonOptions.Add(link);
+					}
 				}
 			}
 
-			if (Options.Count == 0)
+			if (CurrentAR.Options.Count == 0 && CurrentAR.NonOptions.Count == 0)
 			{
 				Data.Log("Onwards {0}", CurrentLocation.Name);
 				string rnd = Data.GetRandomString();
-				Options.Add(rnd, Storylet.Link.GetOnwards(CurrentLocation.Name));
+				CurrentAR.Options.Add(rnd, Storylet.Link.GetOnwards(CurrentLocation.Name));
+			}
+			else if (!CurrentAR.CountsAsLocation && !CurrentAR.Storylet.NoReturn)
+			{
+				Data.Log("Return {0}", CurrentLocation.Name);
+				string rnd = Data.GetRandomString();
+				while (CurrentAR.Options.ContainsKey(rnd))
+					rnd = Data.GetRandomString();
+				CurrentAR.Options.Add(rnd, Storylet.Link.GetReturn(CurrentLocation.Name));
 			}
 		}
 	}

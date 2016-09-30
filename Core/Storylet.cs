@@ -22,6 +22,14 @@ namespace Azalea.Core
 				return l;
 			}
 
+			public static Link GetReturn(string sName)
+			{
+				var l = new Link();
+				l.Special = "Return";
+				l.StoryletName = sName;
+				return l;
+			}
+
 			public bool FromLine(string line, NodeType type)
 			{
 				var chunks = line.Split(' ');
@@ -230,7 +238,12 @@ namespace Azalea.Core
 					return Data.TestCurves[TestName](Value, ValueTwo, level);
 				}
 
-				return Data.DefaultTestCurve(Value, ValueTwo, level);
+				int odds = Data.DefaultTestCurve(Value, ValueTwo, level);
+
+				if (Invert)
+					odds = 100-odds;
+
+				return odds;
 			}
 		}
 
@@ -253,6 +266,7 @@ namespace Azalea.Core
 		public List<Test> Tests = new List<Test>();
 
 		public bool IsLocation = false;
+		public bool NoReturn = false;
 
 		public bool ShouldShow(Inventory inv)
 		{

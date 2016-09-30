@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Collections.Generic;
 using Azalea.Core;
 using CommonMark;
 
@@ -16,21 +17,24 @@ namespace Azalea.Stack
 		{
 			string body = "";
 
-			if (game == null || game.CurrentStorylet == null)
+			if (game == null || game.CurrentAR == null || game.CurrentAR.Storylet == null)
 				return "No storylet!";
 
 			body += "<div class='storylet'>";
 
-			body += string.Format("<h3>{0}</h3>\n", game.CurrentStorylet.Title);
+			body += string.Format("<h3>{0}</h3>\n", game.CurrentAR.Storylet.Title);
 
-			if (result != null && result.TestStorylet != null)
+			foreach(var test in game.CurrentAR.Tests)
 			{
-				var qual = Data.GetQuality(result.TestStorylet.Tests[0].QualityName);
-				if (qual != null)
-					body += string.Format("<p>You {0} a test of {1} {2}</p>\n", (result.TestSuccess) ? "succeeded" : "failed", qual.Title, result.TestStorylet.Tests[0].Value);
+				if (test != null && test.Test != null)
+				{
+					var qual = Data.GetQuality(test.Test.QualityName);
+					if (qual != null)
+						body += string.Format("<p>You {0} a test of {1} {2}</p>\n", (test.Success) ? "succeeded" : "failed", qual.Title, test.Test.Value);
+				}
 			}
 
-			body += CommonMarkConverter.Convert(game.CurrentStorylet.Body);
+			body += CommonMarkConverter.Convert(game.CurrentAR.Storylet.Body);
 
 			body += "</div>";
 
@@ -42,9 +46,28 @@ namespace Azalea.Stack
 				}
 			}
 
-			foreach (var kvp in game.Options)
+			List<KeyValuePair<string, Storylet.Link>> specialLinks = new List<KeyValuePair<string, Storylet.Link>>();
+
+			foreach (var kvp in game.CurrentAR.Options)
 			{
-				body += RenderLink(kvp.Value, kvp.Key);
+				if (string.IsNullOrEmpty(kvp.Value.Special))
+				{
+					body += RenderLink(kvp.Value, kvp.Key, game.Items);
+				}
+				else
+				{
+					specialLinks.Add(kvp);
+				}
+			}
+
+			foreach (var link in game.CurrentAR.NonOptions)
+			{
+				body += RenderLink(link, null, game.Items);
+			}
+
+			foreach (var kvp in specialLinks)
+			{
+				body += RenderLink(kvp.Value, kvp.Key, game.Items);
 			}
 
 			return body;
@@ -59,7 +82,7 @@ namespace Azalea.Stack
 			return result;
 		}
 
-		public static string RenderLink(Storylet.Link l, string id)
+		public static string RenderLink(Storylet.Link l, string id, Inventory inv)
 		{
 			var s = Data.GetStorylet(l.StoryletName);
 			if (s == null)
@@ -73,10 +96,50 @@ namespace Azalea.Stack
 				description = null;
 			}
 
-			string result = "<div class='link'>";
-			result += string.Format("<a href=\"#\" onclick=\"doAction('{0}'); return false;\">{1}</a>\n", id, title);
+			if (l.Special == "Return")
+			{
+				title = "Return";
+				description = null;
+			}
+
+			bool valid = !string.IsNullOrEmpty(id);
+
+			string result = string.Format("<div class='{0}'>", valid ? "link" : "link inactive");
+			if (valid)
+			{
+				result += string.Format("<a href=\"#\" onclick=\"doAction('{0}'); return false;\">{1}</a>\n", id, title);
+			}
+			else
+			{
+				result += string.Format("<span class='nonoption'>{0}</span>\n", title);
+			}
+
 			if (!string.IsNullOrEmpty(description))
-				result += string.Format("<p>{0}</p>", description);
+				result += string.Format("<p>{0}</p>\n", description);
+
+			if (string.IsNullOrEmpty(l.Special))
+			{
+				if (s.Type == Storylet.NodeType.Test && s.Tests.Count > 0)
+				{
+					result += "<p class='tests'>\n";
+					foreach(var test in s.Tests)
+					{
+						result += string.Format("{0}<br />\n", GetTestString(test, inv));
+					}
+					result += "</p>\n";
+				}
+
+				if (s.Requirements.Count > 0)
+				{
+					result += "<p class='reqs'>\n";
+					foreach(var req in s.Requirements)
+					{
+						result += string.Format("{0}<br />\n", GetReqString(req, inv));
+					}
+					result += "</p>\n";
+				}
+			}
+
 			result += "</div>";
 
 			return result;
@@ -126,6 +189,68 @@ namespace Azalea.Stack
 			}
 
 			return string.Format("{0} is unchanged", title);
+		}
+
+		public static string GetTestString(Storylet.Test test, Inventory inv)
+		{
+			if (test == null || inv == null)
+				return "";
+
+			Quality q = Data.GetQuality(test.QualityName);
+			string qName = (q != null) ? q.Name : test.QualityName;
+
+			int odds = test.GetOdds(inv);
+
+			return string.Format("Test on {0} {1}%", qName, odds);
+		}
+
+		public static string GetReqString(Storylet.Requirement req, Inventory inv)
+		{
+			if (req == null || inv == null)
+				return "";
+
+			if (req.NoShow) // This controls storylet visibility, not IsMet
+				return "";
+
+			bool met = req.IsMet(inv);
+
+			string classname = met ? "met" : "notmet";
+
+			string countword = "";
+			switch(req.Req)
+			{
+				case Storylet.Requirement.ReqType.AtLeast:
+					countword = "you have at least " + req.Value;
+					break;
+
+				case Storylet.Requirement.ReqType.Equals:
+					countword = "you have exactly " + req.Value;
+					break;
+
+				case Storylet.Requirement.ReqType.Has:
+					countword = "you have";
+					break;
+
+				case Storylet.Requirement.ReqType.HasNo:
+					countword = "you have no";
+					break;
+
+				case Storylet.Requirement.ReqType.LessThan:
+					countword = "you have less than " + req.Value;
+					break;
+
+				case Storylet.Requirement.ReqType.Range:
+					countword = "you have between " + req.Value + " and " + req.ValueTwo;
+					break;
+			}
+
+			Quality q = Data.GetQuality(req.QualityName);
+			string qName = (q != null) ? q.Name : req.QualityName;
+
+			int count = inv.GetCount(req.QualityName);
+			string currentCount = (q != null) ? q.GetLevel(count).ToString() : count.ToString();
+
+			return string.Format("<span class='{0}'>Requires {1} {2} (You have {3})</span>", classname, countword, qName, currentCount);
 		}
 	}
 }

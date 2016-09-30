@@ -11,8 +11,7 @@ namespace Azalea.Demo
             Data.LoadStoryletFile("DemoStory/storylets.txt");
 			Data.LoadQualitiesFile("DemoStory/qualities.txt");
 
-            var result = new ActionResult();
-			GoToStorylet(Data.GetStorylet("NewGame"), result);
+			JumpToStorylet(Data.GetStorylet("NewGame"));
         }
     }
 }

@@ -24,6 +24,7 @@ PassThrough
 Q: Ship01 Set 1
 Q: Cleanliness Set 6
 Q: CargoSpace Set 3
+Q: ShipWounds Set 0
 @Ship01
 
 !! Ship02
@@ -39,6 +40,7 @@ PassThrough
 Q: Ship02 Set 1
 Q: Cleanliness Set 6
 Q: CargoSpace Set 5
+Q: ShipWounds Set 0
 @Ship02
 
 !! Ship03
@@ -53,13 +55,13 @@ This is the third ship which is really neat. Also not in yet.
 
 !! Ship01Busted
 Title: Dump Sweet Dump
-Req: ShipWounds GreaterThan 2
+Req: ShipWounds AtLeast 3
 -Body
 It's a small thing, your ship, but it's home.
 
 It also can barely fly. Yipes.
 -
-@MissionBoard Look for jobs
+@MissionBoard
 
 !! Ship01Dirty
 Title: Home Sweet Home
@@ -69,8 +71,8 @@ It's a small thing, your ship, but it's home.
 
 It's *also* home to rats now, since you can't keep it clean.
 -
-@CleanShip Clean your ship
-@MissionBoard Look for jobs
+@CleanShip
+@MissionBoard
 
 !! Ship01Cramped
 Title: Home Sweet Home
@@ -80,15 +82,15 @@ It's a small thing, your ship, but it's home.
 
 Of course it'd be nicer if you could get to the shower, but that's the only place you could find for the crates.
 -
-@MissionBoard Look for jobs
+@MissionBoard
 
 !! Ship01Normal
 Title: Home Sweet Home
 -Body
 It's a small thing, your ship, but it's home.
 -
-@ThrowParty Throw a party
-@MissionBoard Look for jobs
+@ThrowParty
+@MissionBoard
 
 # Ship stories
 
@@ -96,7 +98,7 @@ It's a small thing, your ship, but it's home.
 Title: Buying A Bigger Ship
 Req: Ship01 Has
 Req: ShipWounds LessThan 3
-Req: Credits GreaterThan 999
+Req: Credits AtLeast 1000
 Q: Ship01 Set 0
 Q: Credits Lose 1000
 -Body
@@ -109,8 +111,8 @@ Onwards: GainShip02
 !! Upgrade01Broken
 Title: Buying A Bigger Ship
 Req: Ship01 Has
-Req: ShipWounds GreaterThan 2
-Req: Credits GreaterThan 1499
+Req: ShipWounds AtLeast 3
+Req: Credits AtLeast 1500
 Q: Ship01 Set 0
 Q: Ship02 Set 1
 -Body
@@ -120,6 +122,10 @@ You have to hand over more credits than you wanted, but you strike a deal.
 -
 
 !! CleanShip
+Title: Clean Your Ship
+-Link
+It's a mess. You really should.
+-
 Chance
 @CleanShipNormal 5
 @CleanShipRats 1
@@ -154,6 +160,8 @@ Q: Cleanliness LoseRange 1 3
 You throw a wild party for you and all your friends, most of whom show up via hologram but still manage to eat the snacks.
 
 When the night is winding down and it's time to clean up, they all suddenly have connection problems.
+-Link
+Excellent!
 -
 Onwards: @Ship
 
@@ -163,9 +171,11 @@ Onwards: @Ship
 Title: The Job Board
 -Body
 Here you'll find employment offers from the best (and worst) the galaxy has to offer.
+-Link
+Home of the hustle
 -
-@HaulCargo Haul Some Space Cargo
-@DeliverCargo Deliver Some Space Cargo
+@HaulCargo
+@DeliverCargo
 
 !! HaulCargo
 Title: The Space Shipping Business
