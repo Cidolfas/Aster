@@ -4,10 +4,6 @@ namespace Azalea.Core
 {
 	public class Quality
 	{
-		public enum QType { None, Item, Attribute, Flag }
-
-		public QType Type = QType.Item;
-
 		public string Name = "NoName";
 
 		public string Title = "No Name";
@@ -23,19 +19,17 @@ namespace Azalea.Core
 		public bool HasStorylet { get { return !string.IsNullOrEmpty(StoryletName); } }
 
 		public bool IsTag(string tagName) { return Tags.Contains(tagName); }
+		
+		public string Curve = null;
 
 		public int GetLevel(int cp)
 		{
-			if (Type == QType.Attribute)
+			if (Curve == null)
+				return cp;
+
+			if (Data.LevelCurves.ContainsKey(Curve))
 			{
-				int level = 0;
-				int i = 0;
-				while(i < cp)
-				{
-					level++;
-					i += level;
-				}
-				return (i == cp) ? level : level-1;
+				return Data.LevelCurves[Curve](cp);
 			}
 
 			return cp;

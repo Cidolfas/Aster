@@ -66,69 +66,8 @@ namespace Azalea.Core
 
 		public static void LoadQualitiesFile(string path)
 		{
-			Log("Loading qualities file at " + path);
-
-			var f = File.OpenText(path);
-			string line;
-			Quality currentQuality = null;
-			while (true)
-			{
-				line = f.ReadLine();
-
-				if (line == null)
-				{
-					if (currentQuality != null)
-					{
-						if (!Qualities.ContainsKey(currentQuality.Name))
-						{
-							Log("Added Quality " + currentQuality.Name + " " + currentQuality.Title);
-							Qualities.Add(currentQuality.Name, currentQuality);
-						}
-					}
-
-					break;
-				}
-
-				if (line.StartsWith("!!"))
-				{
-					if (currentQuality != null)
-					{
-						if (!Qualities.ContainsKey(currentQuality.Name))
-						{
-							Log("Added Quality " + currentQuality.Name + " " + currentQuality.Title);
-							Qualities.Add(currentQuality.Name, currentQuality);
-						}
-					}
-
-					currentQuality = new Quality();
-
-					string[] chunks = line.Split(' ');
-					currentQuality.Name = (chunks.Length > 1) ? chunks[1] : "NoName";
-					currentQuality.Title = currentQuality.Name;
-				}
-				else if (currentQuality != null)
-				{
-					if (line.StartsWith("Title: "))
-					{
-						currentQuality.Title = line.Replace("Title: ", "");
-					}
-					else if (line.StartsWith("Tags: "))
-					{
-						string[] chunks = line.Replace("Tags: ", "").Split(' ');
-						if (chunks.Length > 0 && !string.IsNullOrEmpty(chunks[0]))
-							currentQuality.Tags.AddRange(chunks);
-					}
-					else if (line.StartsWith("Storylet: "))
-					{
-						string[] chunks = line.Split(' ');
-						currentQuality.StoryletName = (chunks.Length > 1) ? chunks[1] : null;
-					}
-					else
-					{
-						currentQuality.Description = line;
-					}
-				}
-			}
+			var loader = new QualityLoader();
+			loader.LoadTextFile(path, Qualities);
 		}
 
 		public static string GetRandomString()
