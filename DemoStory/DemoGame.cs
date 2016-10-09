@@ -8,8 +8,10 @@ namespace Azalea.Demo
         {
             base.Init();
 
-            Data.LoadStoryletFile("DemoStory/storylets.txt");
-			Data.LoadQualitiesFile("DemoStory/qualities.txt");
+            // Data.LoadStoryletFile("DemoStory/storylets.txt");
+			// Data.LoadQualitiesFile("DemoStory/qualities.txt");
+
+            ManifestLoader.LoadManifest("manifest.txt");
 
 			JumpToStorylet(Data.GetStorylet("NewGame"));
         }
