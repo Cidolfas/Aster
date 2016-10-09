@@ -2,6 +2,8 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System;
 
 namespace Azalea.Core
 {
@@ -9,109 +11,143 @@ namespace Azalea.Core
     {
 		Storylet currentStorylet = null;
 		Dictionary<string, Storylet> library = null;
+		bool inTextBlock = false;
+		bool inLink = false;
 
         public void LoadTextFile(string path, Dictionary<string, Storylet> l)
 		{
 			library = l;
+			CloseCurrent();
 
 #if DEBUG_LOAD
 			Data.Log("Loading storylet file at " + path);
 #endif
 
 			var f = File.OpenText(path);
-			string line;
-			bool inTextBlock = false;
-			bool inLink = false;
+			string line = f.ReadLine();
 			
-			while (true)
+			while (AddLine(line))
 			{
 				line = f.ReadLine();
+			}
 
-				if (line == null)
-				{
-					// Close out the last storylet
-					CloseCurrent();
-					break;
-				}
+			CloseCurrent();
+		}
 
-				if (line.StartsWith("!! "))
+		public void LoadGDoc(string docID, Dictionary<string, Storylet> l)
+		{
+			string url = string.Format("https://docs.google.com/document/d/{0}/export?format=txt", docID);
+
+			WebClient wc = new WebClient();
+			string contents = wc.DownloadString(url);
+			wc.Dispose();
+			string[] lines = contents.Split(new string[] {"\r\n", "\n\r", "\n", "\r"}, StringSplitOptions.None);
+			LoadEnumerator(((IEnumerable<string>)lines).GetEnumerator(), l);
+		}
+
+		public void LoadEnumerator(IEnumerator<string> e, Dictionary<string, Storylet> l)
+		{
+			library = l;
+			CloseCurrent();
+
+			while(e.MoveNext() && AddLine(e.Current))
+			{
+			}
+
+			CloseCurrent();
+		}
+
+		protected bool AddLine(string line)
+		{
+			if (line == null)
+			{
+				// Close out the last storylet
+				CloseCurrent();
+				return false;
+			}
+
+			if (line.StartsWith("!! "))
+			{
+				CreateNew(line);
+				inTextBlock = false;
+			}
+			else if (currentStorylet != null)
+			{
+				if (line == "-")
 				{
-					CreateNew(line);
 					inTextBlock = false;
 				}
-				else if (currentStorylet != null)
+				else if (line.StartsWith("-Body"))
 				{
-					if (line == "-")
+					inTextBlock = true;
+					inLink = false;
+				}
+				else if (line.StartsWith("-Link"))
+				{
+					inTextBlock = true;
+					inLink = true;
+				}
+				else if (inTextBlock)
+				{
+					AddTextLine(line, inLink);
+				}
+				else if (line == "PassThrough")
+				{
+					currentStorylet.Type = Storylet.NodeType.PassThrough;
+				}
+				else if (line == "Chance")
+				{
+					currentStorylet.Type = Storylet.NodeType.Chance;
+				}
+				else if (line == "Location")
+				{
+					currentStorylet.IsLocation = true;
+				}
+				else if (line.StartsWith("Test "))
+				{
+					currentStorylet.Type = Storylet.NodeType.Test;
+					AddTest(line);
+				}
+				else if (line.StartsWith("Title: "))
+				{
+					currentStorylet.Title = line.Replace("Title: ", "");
+					if (string.IsNullOrEmpty(currentStorylet.LinkTitle) || currentStorylet.LinkTitle == "NoTitle")
 					{
-						inTextBlock = false;
-					}
-					else if (line.StartsWith("-Body"))
-					{
-						inTextBlock = true;
-						inLink = false;
-					}
-					else if (line.StartsWith("-Link"))
-					{
-						inTextBlock = true;
-						inLink = true;
-					}
-					else if (inTextBlock)
-					{
-						AddTextLine(line, inLink);
-					}
-					else if (line == "PassThrough")
-					{
-						currentStorylet.Type = Storylet.NodeType.PassThrough;
-					}
-					else if (line == "Chance")
-					{
-						currentStorylet.Type = Storylet.NodeType.Chance;
-					}
-					else if (line == "Location")
-					{
-						currentStorylet.IsLocation = true;
-					}
-					else if (line.StartsWith("Test "))
-					{
-						currentStorylet.Type = Storylet.NodeType.Test;
-						AddTest(line);
-					}
-					else if (line.StartsWith("Title: "))
-					{
-						currentStorylet.Title = line.Replace("Title: ", "");
-						if (string.IsNullOrEmpty(currentStorylet.LinkTitle) || currentStorylet.LinkTitle == "NoTitle")
-						{
-							currentStorylet.LinkTitle = currentStorylet.Title;
-						}
-					}
-					else if (line.StartsWith("LinkTitle: "))
-					{
-						currentStorylet.LinkTitle = line.Replace("LinkTitle: ", "");
-					}
-					else if (line.StartsWith("Req: "))
-					{
-						AddRequirement(line);
-					}
-					else if (line.StartsWith("Q: "))
-					{
-						var op = new Inventory.Operation();
-						if (op.FromLine(line))
-							currentStorylet.Operations.Add(op);
-					}
-					else if (line.StartsWith("Move "))
-					{
-						AddMove(line);
-					}
-					else if (line.StartsWith("@"))
-					{
-						AddLink(line);
+						currentStorylet.LinkTitle = currentStorylet.Title;
 					}
 				}
+				else if (line.StartsWith("LinkTitle: "))
+				{
+					currentStorylet.LinkTitle = line.Replace("LinkTitle: ", "");
+				}
+				else if (line.StartsWith("Req: "))
+				{
+					AddRequirement(line);
+				}
+				else if (line.StartsWith("Q: "))
+				{
+					var op = new Inventory.Operation();
+					if (op.FromLine(line))
+						currentStorylet.Operations.Add(op);
+				}
+				else if (line.StartsWith("Move "))
+				{
+					AddMove(line);
+				}
+				else if (line.StartsWith("@"))
+				{
+					AddLink(line);
+				}
 			}
+
+			return true;
 		}
 
 		protected void CloseCurrent()
 		{
+			inTextBlock = false;
+			inLink = false;
+
 			if (currentStorylet == null)
 				return;
 

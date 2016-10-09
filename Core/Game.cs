@@ -163,6 +163,8 @@ namespace Azalea.Core
 
 			if (s.Type == Storylet.NodeType.Chance)
 			{
+				Data.Log("Chance!");
+
 				int total = 0;
 				var metStorylets = new List<Storylet>();
 				var metLinks = new List<Storylet.Link>();
@@ -171,6 +173,8 @@ namespace Azalea.Core
 					var storylet = Data.GetStorylet(link.StoryletName);
 					if (storylet != null && storylet.HasMet(Items))
 					{
+						Data.Log("Add chance for {0} {1}", storylet.Name, link.Weight);
+
 						total += link.Weight;
 						metStorylets.Add(storylet);
 						metLinks.Add(link);
@@ -178,6 +182,7 @@ namespace Azalea.Core
 				}
 
 				int roll = Data.GenericRandom.Next(total);
+				Data.Log("Rolled {0} on total {1}", roll, total);
 				for (int i = 0; i < metStorylets.Count; i++)
 				{
 					roll -= metLinks[i].Weight;
@@ -253,7 +258,8 @@ namespace Azalea.Core
 			foreach (var link in CurrentAR.Storylet.Links)
 			{
 				Storylet s = Data.GetStorylet(link.StoryletName);
-				Data.Log("Link {0} {1} {2}", link.StoryletName, s.LinkText, s != null);
+				string linkText = (s != null) ? s.LinkText : "";
+				Data.Log("Link {0} {1} {2}", link.StoryletName, linkText, s != null);
 				if (s != null)
 				{
 					if (s.HasMet(Items))
@@ -276,7 +282,7 @@ namespace Azalea.Core
 				string rnd = Data.GetRandomString();
 				CurrentAR.Options.Add(rnd, Storylet.Link.GetOnwards(CurrentLocation.Name));
 			}
-			else if (!CurrentAR.CountsAsLocation && !CurrentAR.Storylet.NoReturn)
+			else if (!CurrentAR.CountsAsLocation && !CurrentAR.Storylet.NoReturn && CurrentLocation != null)
 			{
 				Data.Log("Return {0}", CurrentLocation.Name);
 				string rnd = Data.GetRandomString();

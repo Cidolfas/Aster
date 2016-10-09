@@ -35,7 +35,7 @@ namespace Azalea.Core
 				var chunks = line.Split(' ');
 				int idx = 0;
 
-				StoryletName = chunks[idx++].Remove(0, 1);
+				StoryletName = chunks[idx].Remove(0, 1);
 
 				while (++idx < chunks.Length)
 				{
